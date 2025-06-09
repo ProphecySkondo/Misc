@@ -1,3 +1,7 @@
+--[[ # Remake was made by skondoooo92
+	 # Discord server is: "https://discord.gg/4THYgrRQd3"
+	 # Join our server for more updates and information]]--
+
 if IY_LOADED and not _G.IY_DEBUG == true then
     warn("[IY]: already loaded")
     loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/watermark.lua"))()
@@ -4544,6 +4548,7 @@ CMDs[#CMDs + 1] = {NAME = 'esptransparency [number]', DESC = 'Changes the transp
 CMDs[#CMDs + 1] = {NAME = 'partesp [part name]', DESC = 'Highlights a part'}
 CMDs[#CMDs + 1] = {NAME = 'unpartesp / nopartesp [part name]', DESC = 'removes partesp'}
 CMDs[#CMDs + 1] = {NAME = 'chams', DESC = 'ESP but without text in the way'}
+CMDs[#CMDs + 1] = {NAME = 'commandprompt / cmdprompt', DESC = 'executes command prompt by skondo'}
 CMDs[#CMDs + 1] = {NAME = 'nochams / unchams', DESC = 'Removes chams'}
 CMDs[#CMDs + 1] = {NAME = 'locate [player]', DESC = 'View a single player and their status'}
 CMDs[#CMDs + 1] = {NAME = 'unlocate / nolocate [player]', DESC = 'Removes locate'}
@@ -12398,6 +12403,11 @@ addcmd("alignmentkeys", {}, function(args, speaker)
     end)
     alignmentKeysEmotes = StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu)
     StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, false)
+end)
+
+addcmd("commandprompt", {'cmdprompt', 'windowsprompt'}, function(args, speaker)
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/commandprompt.lua"))()
+	notify("Command prompt by 'skondoooo92'")
 end)
 
 addcmd("unalignmentkeys", {"noalignmentkeys"}, function(args, speaker)
