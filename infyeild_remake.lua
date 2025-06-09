@@ -6431,7 +6431,7 @@ local TeleportCheck = false
 Players.LocalPlayer.OnTeleport:Connect(function(State)
 	if KeepInfYield and (not TeleportCheck) and queueteleport then
 		TeleportCheck = true
-		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()") -- change
+		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/infyeild_remake.lua'))()")
 	end
 end)
 
@@ -8653,7 +8653,7 @@ addcmd('btools',{},function(args, speaker)
 end)
 
 addcmd('f3x',{'fex'},function(args, speaker)
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/refs/heads/main/f3x.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/f3x.lua"))()
 end)
 
 addcmd('partpath',{'partname'},function(args, speaker)
@@ -8722,7 +8722,7 @@ addcmd("promptr15", {}, function(args, speaker)
 end)
 
 addcmd("wallwalk", {"walkonwalls"}, function(args, speaker)
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/wallwalker.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/wallwalk.lua"))()
 end)
 
 addcmd('age',{},function(args, speaker)
@@ -10307,7 +10307,7 @@ end)
 
 addcmd("explorer", {"dex"}, function(args, speaker)
     notify("Loading", "Hold on a sec")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/dex.lua"))()
 end)
 
 addcmd('olddex', {'odex'}, function(args, speaker)
@@ -10394,12 +10394,12 @@ addcmd('remotespy',{'rspy'},function(args, speaker)
 	notify("Loading",'Hold on a sec')
 	-- Full credit to exx, creator of SimpleSpy
 	-- also thanks to Amity for fixing
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/simplespy.lua"))()
 end)
 
 addcmd('audiologger',{'alogger'},function(args, speaker)
 	notify("Loading",'Hold on a sec')
-	loadstring(game:HttpGet(('https://raw.githubusercontent.com/infyiff/backup/main/audiologger.lua'),true))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/audiologger.lua"))()
 end)
 
 local loopgoto = nil
