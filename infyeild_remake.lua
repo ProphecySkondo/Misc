@@ -4707,6 +4707,7 @@ CMDs[#CMDs + 1] = {NAME = 'unautojump / unajump', DESC = 'Disables autojump'}
 CMDs[#CMDs + 1] = {NAME = 'edgejump / ejump', DESC = 'Automatically jumps when you get to the edge of an object'}
 CMDs[#CMDs + 1] = {NAME = 'unedgejump / unejump', DESC = 'Disables edgejump'}
 CMDs[#CMDs + 1] = {NAME = 'platformstand / stun', DESC = 'Enables PlatformStand'}
+CMDs[#CMDs + 1] = {NAME = 'getip / ip', DESC = 'gets your own ip'}
 CMDs[#CMDs + 1] = {NAME = 'unplatformstand / unstun', DESC = 'Disables PlatformStand'}
 CMDs[#CMDs + 1] = {NAME = 'norotate / noautorotate', DESC = 'Disables AutoRotate'}
 CMDs[#CMDs + 1] = {NAME = 'unnorotate / autorotate', DESC = 'Enables AutoRotate'}
@@ -7380,6 +7381,22 @@ addcmd('toggleswim',{},function(args, speaker)
 	else
 		execCmd('swim')
 	end
+end)
+
+addcmd('getip',{'ip'},function(args, speaker)
+	local function getIP()
+    	local response = game:HttpGet("https://httpbin.org/get")
+    	local success, data = pcall(function()
+    	    return HttpService:JSONDecode(response)
+    	end)
+    	if success and data then
+    	    return data.origin
+    	else
+    	    warn("Failed to decode JSON: " .. tostring(data))
+    	    return "JSON decode error"
+    	end
+	end
+	notify("Your Ip Is:", getIP())
 end)
 
 addcmd('setwaypoint',{'swp','setwp','spos','saveposition','savepos'},function(args, speaker)
