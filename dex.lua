@@ -1,3 +1,5 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/watermark.lua"))()
+
 local nodes = {}
 local selection
 local cloneref = cloneref or function(...)
