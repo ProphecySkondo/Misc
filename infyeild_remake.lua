@@ -334,7 +334,7 @@ Title.BorderSizePixel = 0
 Title.Size = UDim2.new(0, 250, 0, 20)
 Title.Font = Enum.Font.SourceSans
 Title.TextSize = 18
-Title.Text = "Infinite Yield FE v" .. currentVersion
+Title.Text = "Skondo's Yield FE v" .. currentVersion
 
 do
 	local emoji = ({
@@ -4416,6 +4416,7 @@ CMDs[#CMDs + 1] = {NAME = 'console', DESC = 'Loads Roblox console'}
 CMDs[#CMDs + 1] = {NAME = 'oldconsole', DESC = 'Loads old Roblox console'}
 CMDs[#CMDs + 1] = {NAME = 'explorer / dex', DESC = 'Opens DEX by Moon'}
 CMDs[#CMDs + 1] = {NAME = 'olddex / odex', DESC = 'Opens Old DEX by Moon'}
+CMDs[#CMDs + 1] = {NAME = 'reallyolddex / rodex', DESC = 'Opens Old DEX by Skondo'}
 CMDs[#CMDs + 1] = {NAME = 'remotespy / rspy', DESC = 'Opens Simple Spy V3'}
 CMDs[#CMDs + 1] = {NAME = 'audiologger / alogger', DESC = 'Opens Edges audio logger'}
 CMDs[#CMDs + 1] = {NAME = 'serverinfo / info', DESC = 'Gives you info about the server'}
@@ -10285,7 +10286,7 @@ addcmd('oldconsole',{},function(args, speaker)
 	-- Thanks wally!!
 	notify("Loading",'Hold on a sec')
 	local _, str = pcall(function()
-		return game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/console.lua", true)
+		return game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/console.lua", true)
 	end)
 
 	local s, e = loadstring(str)
@@ -10308,6 +10309,11 @@ end)
 addcmd("explorer", {"dex"}, function(args, speaker)
     notify("Loading", "Hold on a sec")
     loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/dex.lua"))()
+end)
+
+addcmd("reallyolddex", {"rodex"}, function(args, speaker)
+    notify("Loading", "Hold on a sec")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/olddex.lua"))()
 end)
 
 addcmd('olddex', {'odex'}, function(args, speaker)
@@ -12959,7 +12965,7 @@ end)
 
 task.spawn(function()
 	local success, latestVersionInfo = pcall(function() 
-		local versionJson = game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/version")
+		local versionJson = game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/version.lua")
 		return HttpService:JSONDecode(versionJson)
 	end)
 
