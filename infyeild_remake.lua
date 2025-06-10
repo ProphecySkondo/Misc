@@ -4833,6 +4833,7 @@ CMDs[#CMDs + 1] = {NAME = 'listento [player]', DESC = 'Listens to the area aroun
 CMDs[#CMDs + 1] = {NAME = 'unlistento', DESC = 'Disables listento'}
 CMDs[#CMDs + 1] = {NAME = 'jerk', DESC = 'Makes you jork it'}
 CMDs[#CMDs + 1] = {NAME = 'unsuspendvc', DESC = 'Unsuspends you from voice chat'}
+CMDs[#CMDs + 1] = {NAME = 'executer / exploit', DESC = 'Notifys and prints your executer'}
 wait()
 
 for i = 1, #CMDs do
@@ -11310,6 +11311,12 @@ end)
 
 addcmd('night',{},function(args, speaker)
 	Lighting.ClockTime = 0
+end)
+
+addcmd('executer',{'exploit'},function(args, speaker)
+	executer = identifyexecutor()
+	output(executer)
+	notify("Your Executer is:", executer)
 end)
 
 addcmd('nofog',{},function(args, speaker)
