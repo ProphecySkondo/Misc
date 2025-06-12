@@ -17,6 +17,11 @@ local CoreGui = game:GetService("CoreGui")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
+-- Check if library already exists (for game persistence)
+if _G.CommandLibraryLoaded then
+    return _G.CommandLibraryInstance
+end
+
 -- Command Library Class
 local CommandLibrary = {}
 CommandLibrary.__index = CommandLibrary
@@ -30,10 +35,12 @@ local Settings = {
     Prefix = "",
     Theme = "Dark",
     Keybind = Enum.KeyCode.Semicolon,
+    FadeKeybind = Enum.KeyCode.BackQuote, -- Backtick key
     AutoComplete = true,
     CommandSuggestions = true,
     Notifications = true,
-    LoadingTime = 2
+    LoadingTime = 2,
+    DiscordServer = "https://discord.gg/YourServerHere" -- Replace with your Discord invite
 }
 
 -- State Variables
@@ -889,6 +896,17 @@ function CommandLibrary:AddCommand(name, description, aliases, func)
     end
     
     self:UpdateCommandCount()
+    
+    -- Refresh UI if it exists
+    if GUI.CommandsList then
+        self:PopulateCommandsList()
+        self:PopulateCategories()
+        
+        -- Update status if this is the first command
+        if self:GetCommandCount() == 1 then
+            self:UpdateStatus("Ready", Color3.fromRGB(100, 255, 100))
+        end
+    end
 end
 
 function CommandLibrary:RemoveCommand(name)
@@ -1004,10 +1022,96 @@ end
 
 function CommandLibrary:ToggleGUI()
     if GUI.MainFrame then
-        GUI.MainFrame.Visible = not GUI.MainFrame.Visible
         if GUI.MainFrame.Visible then
+            -- Animate close
+            TweenService:Create(GUI.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                Size = UDim2.new(0, 0, 0, 0),
+                Position = UDim2.new(0.5, 0, 0.5, 0)
+            }):Play()
+            
+            wait(0.3)
+            GUI.MainFrame.Visible = false
+        else
+            -- Show and animate open
+            GUI.MainFrame.Visible = true
+            self:CreateIntroAnimation()
             GUI.CommandInput:CaptureFocus()
         end
+    end
+end
+
+function CommandLibrary:FadeGUI()
+    if GUI.MainFrame and GUI.MainFrame.Visible then
+        -- Fade out animation
+        local fadeOut = TweenService:Create(GUI.MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+            BackgroundTransparency = 1
+        })
+        
+        -- Fade all child elements
+        local function fadeElement(element)
+            if element:IsA("GuiObject") then
+                local originalTransparency = element.BackgroundTransparency
+                local originalTextTransparency = element:IsA("TextLabel") and element.TextTransparency or nil
+                
+                if element.BackgroundTransparency < 1 then
+                    TweenService:Create(element, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+                        BackgroundTransparency = 1
+                    }):Play()
+                end
+                
+                if originalTextTransparency and originalTextTransparency < 1 then
+                    TweenService:Create(element, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+                        TextTransparency = 1
+                    }):Play()
+                end
+                
+                for _, child in pairs(element:GetChildren()) do
+                    fadeElement(child)
+                end
+            end
+        end
+        
+        fadeElement(GUI.MainFrame)
+        fadeOut:Play()
+        
+        fadeOut.Completed:Connect(function()
+            GUI.MainFrame.Visible = false
+            -- Reset transparencies for next show
+            self:ResetTransparencies()
+        end)
+    end
+end
+
+function CommandLibrary:ResetTransparencies()
+    local function resetElement(element)
+        if element:IsA("GuiObject") then
+            if element.Name ~= "Shadow" then
+                element.BackgroundTransparency = element:GetAttribute("OriginalBGTransparency") or 0
+            end
+            
+            if element:IsA("TextLabel") or element:IsA("TextButton") or element:IsA("TextBox") then
+                element.TextTransparency = element:GetAttribute("OriginalTextTransparency") or 0
+            end
+            
+            for _, child in pairs(element:GetChildren()) do
+                resetElement(child)
+            end
+        end
+    end
+    
+    if GUI.MainFrame then
+        resetElement(GUI.MainFrame)
+    end
+end
+
+function CommandLibrary:CopyDiscordServer()
+    if setclipboard then
+        setclipboard(Settings.DiscordServer)
+        self:AddOutput("Discord server copied to clipboard!", Color3.fromRGB(100, 255, 100))
+        createNotification("Discord Server", "Invite link copied to clipboard!", 3)
+    else
+        self:AddOutput("Clipboard not supported by your executor", Color3.fromRGB(255, 100, 100))
+        self:AddOutput("Discord Server: " .. Settings.DiscordServer, Color3.fromRGB(100, 255, 255))
     end
 end
 
@@ -1137,159 +1241,8 @@ function CommandLibrary:StopNoClip()
     self:AddOutput("NoClip disabled", Color3.fromRGB(255, 100, 100))
 end
 
--- Register Default Commands
-function CommandLibrary:RegisterDefaultCommands()
-    -- Fly Commands
-    self:AddCommand("fly", "Enable flight mode", {"f"}, function(args)
-        self:StartFly()
-    end)
-    
-    self:AddCommand("unfly", "Disable flight mode", {"uf", "nofly"}, function(args)
-        self:StopFly()
-    end)
-    
-    self:AddCommand("flyspeed", "Set fly speed", {"fs"}, function(args)
-        local speed = tonumber(args[1]) or 50
-        States.FlySpeed = math.max(1, math.min(1000, speed))
-        self:AddOutput("Fly speed set to: " .. States.FlySpeed, Color3.fromRGB(100, 255, 255))
-    end)
-    
-    -- Movement Commands
-    self:AddCommand("speed", "Set walk speed", {"ws", "walkspeed"}, function(args)
-        if not States.Humanoid then return end
-        local speed = tonumber(args[1]) or 16
-        speed = math.max(0, math.min(1000, speed))
-        States.Humanoid.WalkSpeed = speed
-        self:AddOutput("Walk speed set to: " .. speed, Color3.fromRGB(100, 255, 255))
-    end)
-    
-    self:AddCommand("jumppower", "Set jump power", {"jp", "jpower"}, function(args)
-        if not States.Humanoid then return end
-        local power = tonumber(args[1]) or 50
-        power = math.max(0, math.min(1000, power))
-        States.Humanoid.JumpPower = power
-        self:AddOutput("Jump power set to: " .. power, Color3.fromRGB(100, 255, 255))
-    end)
-    
-    self:AddCommand("noclip", "Enable noclip", {"nc"}, function(args)
-        self:StartNoClip()
-    end)
-    
-    self:AddCommand("clip", "Disable noclip", {"c"}, function(args)
-        self:StopNoClip()
-    end)
-    
-    self:AddCommand("sit", "Make character sit", {}, function(args)
-        if States.Humanoid then
-            States.Humanoid.Sit = true
-            self:AddOutput("Sitting", Color3.fromRGB(255, 255, 100))
-        end
-    end)
-    
-    self:AddCommand("unsit", "Make character stand", {}, function(args)
-        if States.Humanoid then
-            States.Humanoid.Sit = false
-            self:AddOutput("Standing", Color3.fromRGB(255, 255, 100))
-        end
-    end)
-    
-    self:AddCommand("jump", "Make character jump", {"j"}, function(args)
-        if States.Humanoid then
-            States.Humanoid.Jump = true
-            self:AddOutput("Jumping", Color3.fromRGB(255, 255, 100))
-        end
-    end)
-    
-    -- Teleport Commands
-    self:AddCommand("tp", "Teleport to player or coordinates", {"teleport", "goto"}, function(args)
-        if not States.RootPart then return end
-        
-        if #args == 0 then
-            self:AddOutput("Usage: tp [player] or tp [x] [y] [z]", Color3.fromRGB(255, 255, 100))
-            return
-        end
-        
-        if tonumber(args[1]) then
-            -- Coordinate teleport
-            local x = tonumber(args[1]) or 0
-            local y = tonumber(args[2]) or 0
-            local z = tonumber(args[3]) or 0
-            States.RootPart.CFrame = CFrame.new(x, y, z)
-            self:AddOutput("Teleported to: " .. x .. ", " .. y .. ", " .. z, Color3.fromRGB(100, 255, 100))
-        else
-            -- Player teleport
-            local targetName = args[1]:lower()
-            local targetPlayer = nil
-            
-            for _, player in pairs(Players:GetPlayers()) do
-                if player.Name:lower():find(targetName) or player.DisplayName:lower():find(targetName) then
-                    targetPlayer = player
-                    break
-                end
-            end
-            
-            if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                States.RootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
-                self:AddOutput("Teleported to: " .. targetPlayer.Name, Color3.fromRGB(100, 255, 100))
-            else
-                self:AddOutput("Player not found: " .. args[1], Color3.fromRGB(255, 100, 100))
-            end
-        end
-    end)
-    
-    -- Utility Commands
-    self:AddCommand("reset", "Reset character", {"re"}, function(args)
-        if States.Character then
-            States.Character:BreakJoints()
-            self:AddOutput("Character reset", Color3.fromRGB(255, 255, 100))
-        end
-    end)
-    
-    self:AddCommand("respawn", "Respawn character", {"resp"}, function(args)
-        Player:LoadCharacter()
-        self:AddOutput("Character respawned", Color3.fromRGB(255, 255, 100))
-    end)
-    
-    -- Visual Commands
-    self:AddCommand("fullbright", "Enable fullbright", {"fb"}, function(args)
-        Lighting.Brightness = 2
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 100000
-        Lighting.GlobalShadows = false
-        Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-        States.FullbrightEnabled = true
-        self:AddOutput("Fullbright enabled", Color3.fromRGB(100, 255, 100))
-    end)
-    
-    self:AddCommand("unfullbright", "Disable fullbright", {"ufb", "nofullbright"}, function(args)
-        Lighting.Brightness = 1
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 100000
-        Lighting.GlobalShadows = true
-        Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
-        States.FullbrightEnabled = false
-        self:AddOutput("Fullbright disabled", Color3.fromRGB(255, 100, 100))
-    end)
-    
-    -- Info Commands
-    self:AddCommand("coords", "Show current coordinates", {"pos", "position"}, function(args)
-        if States.RootPart then
-            local pos = States.RootPart.Position
-            self:AddOutput("Position: " .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z), Color3.fromRGB(255, 255, 100))
-        end
-    end)
-    
-    self:AddCommand("players", "List all players", {"plrs"}, function(args)
-        local playerList = "Players online (" .. #Players:GetPlayers() .. "): "
-        for i, player in pairs(Players:GetPlayers()) do
-            playerList = playerList .. player.Name
-            if i < #Players:GetPlayers() then
-                playerList = playerList .. ", "
-            end
-        end
-        self:AddOutput(playerList, Color3.fromRGB(255, 255, 100))
-    end)
-    
+-- Register Built-in System Commands Only
+function CommandLibrary:RegisterSystemCommands()
     -- System Commands
     self:AddCommand("clear", "Clear console", {"cls"}, function(args)
         for _, child in pairs(GUI.OutputFrame:GetChildren()) do
@@ -1304,47 +1257,104 @@ function CommandLibrary:RegisterDefaultCommands()
         self:AddOutput("=== COMMAND LIBRARY HELP ===", Color3.fromRGB(100, 255, 255))
         self:AddOutput("", Color3.fromRGB(255, 255, 255))
         
-        local categories = {
-            ["Movement"] = {"fly", "unfly", "flyspeed", "speed", "jumppower", "noclip", "clip"},
-            ["Teleport"] = {"tp", "goto"},
-            ["Character"] = {"sit", "unsit", "jump", "reset", "respawn"},
-            ["Visual"] = {"fullbright", "unfullbright"},
-            ["Info"] = {"coords", "players"},
-            ["System"] = {"clear", "help"}
-        }
-        
-        for category, cmds in pairs(categories) do
-            self:AddOutput("--- " .. category .. " ---", Color3.fromRGB(150, 150, 255))
-            for _, cmdName in ipairs(cmds) do
-                local cmd = Commands[cmdName]
-                if cmd then
-                    local aliasText = ""
-                    if cmd.Aliases and #cmd.Aliases > 0 then
-                        aliasText = " (" .. table.concat(cmd.Aliases, ", ") .. ")"
-                    end
-                    self:AddOutput(cmdName .. aliasText .. " - " .. cmd.Description, Color3.fromRGB(255, 255, 255))
-                end
-            end
-            self:AddOutput("", Color3.fromRGB(255, 255, 255))
+        if self:GetCommandCount() == 0 then
+            self:AddOutput("No commands loaded yet.", Color3.fromRGB(255, 255, 100))
+            self:AddOutput("Use lib:AddCommand() to add commands.", Color3.fromRGB(255, 255, 100))
+            return
         end
         
-        self:AddOutput("Total commands: " .. #Commands, Color3.fromRGB(100, 255, 255))
+        local categories = {
+            ["Movement"] = {},
+            ["Teleport"] = {},
+            ["Character"] = {},
+            ["Visual"] = {},
+            ["Info"] = {},
+            ["System"] = {}
+        }
+        
+        -- Categorize existing commands
+        for cmdName, cmd in pairs(Commands) do
+            local category = "System" -- Default
+            
+            if cmdName:find("fly") or cmdName:find("speed") or cmdName:find("jump") or cmdName:find("noclip") then
+                category = "Movement"
+            elseif cmdName:find("tp") or cmdName:find("goto") or cmdName:find("teleport") then
+                category = "Teleport"
+            elseif cmdName:find("sit") or cmdName:find("reset") or cmdName:find("respawn") then
+                category = "Character"
+            elseif cmdName:find("fullbright") or cmdName:find("esp") then
+                category = "Visual"
+            elseif cmdName:find("coords") or cmdName:find("players") or cmdName:find("about") then
+                category = "Info"
+            end
+            
+            table.insert(categories[category], cmdName)
+        end
+        
+        for category, cmds in pairs(categories) do
+            if #cmds > 0 then
+                self:AddOutput("--- " .. category .. " ---", Color3.fromRGB(150, 150, 255))
+                for _, cmdName in ipairs(cmds) do
+                    local cmd = Commands[cmdName]
+                    if cmd then
+                        local aliasText = ""
+                        if cmd.Aliases and #cmd.Aliases > 0 then
+                            aliasText = " (" .. table.concat(cmd.Aliases, ", ") .. ")"
+                        end
+                        self:AddOutput(cmdName .. aliasText .. " - " .. cmd.Description, Color3.fromRGB(255, 255, 255))
+                    end
+                end
+                self:AddOutput("", Color3.fromRGB(255, 255, 255))
+            end
+        end
+        
+        self:AddOutput("Total commands: " .. self:GetCommandCount(), Color3.fromRGB(100, 255, 255))
         self:AddOutput("Press " .. Settings.Keybind.Name .. " to toggle GUI", Color3.fromRGB(100, 255, 255))
+        self:AddOutput("Press ` (backtick) to fade GUI", Color3.fromRGB(100, 255, 255))
     end)
     
     self:AddCommand("about", "Show library information", {"info"}, function(args)
         self:AddOutput("=== COMMAND LIBRARY INFO ===", Color3.fromRGB(100, 255, 255))
-        self:AddOutput("Version: 2.0", Color3.fromRGB(255, 255, 255))
+        self:AddOutput("Version: 2.0 - Pure Library", Color3.fromRGB(255, 255, 255))
         self:AddOutput("Author: Assistant", Color3.fromRGB(255, 255, 255))
-        self:AddOutput("Commands loaded: " .. #Commands, Color3.fromRGB(255, 255, 255))
+        self:AddOutput("Commands loaded: " .. self:GetCommandCount(), Color3.fromRGB(255, 255, 255))
         self:AddOutput("Inspired by Infinite Yield", Color3.fromRGB(255, 255, 255))
         self:AddOutput("", Color3.fromRGB(255, 255, 255))
         self:AddOutput("Features:", Color3.fromRGB(150, 150, 255))
-        self:AddOutput("• Modular command system", Color3.fromRGB(255, 255, 255))
-        self:AddOutput("• Dark themed UI", Color3.fromRGB(255, 255, 255))
-        self:AddOutput("• Command aliases", Color3.fromRGB(255, 255, 255))
-        self:AddOutput("• Auto-complete suggestions", Color3.fromRGB(255, 255, 255))
+        self:AddOutput("• Pure modular command library", Color3.fromRGB(255, 255, 255))
+        self:AddOutput("• Dark themed sectioned UI", Color3.fromRGB(255, 255, 255))
+        self:AddOutput("• Command aliases & categories", Color3.fromRGB(255, 255, 255))
+        self:AddOutput("• Cross-game persistence", Color3.fromRGB(255, 255, 255))
         self:AddOutput("• Extensible plugin system", Color3.fromRGB(255, 255, 255))
+        self:AddOutput("", Color3.fromRGB(255, 255, 255))
+        self:AddOutput("Usage:", Color3.fromRGB(150, 150, 255))
+        self:AddOutput("lib:AddCommand(name, desc, aliases, func)", Color3.fromRGB(255, 255, 255))
+        self:AddOutput("", Color3.fromRGB(255, 255, 255))
+        self:AddOutput("Example:", Color3.fromRGB(150, 150, 255))
+        self:AddOutput('lib:AddCommand("fly", "Enable flight", {"f"}, function()', Color3.fromRGB(200, 200, 200))
+        self:AddOutput('    -- Your fly code here', Color3.fromRGB(200, 200, 200))
+        self:AddOutput('end)', Color3.fromRGB(200, 200, 200))
+    end)
+    
+    self:AddCommand("discord", "Copy Discord server invite", {"dc", "server"}, function(args)
+        self:CopyDiscordServer()
+    end)
+    
+    self:AddCommand("reload", "Reload the library", {"rl"}, function(args)
+        self:AddOutput("Reloading Command Library...", Color3.fromRGB(255, 255, 100))
+        wait(1)
+        
+        -- Clear global flag
+        _G.CommandLibraryLoaded = false
+        _G.CommandLibraryInstance = nil
+        
+        -- Destroy current GUI
+        if GUI.ScreenGui then
+            GUI.ScreenGui:Destroy()
+        end
+        
+        -- Reload script
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/testlibb.lua"))()
     end)
 end
 
@@ -1571,14 +1581,60 @@ end
 function CommandLibrary:PopulateCommandsList()
     -- Clear existing commands
     for _, child in pairs(GUI.CommandsList:GetChildren()) do
-        if child:IsA("Frame") and child.Name:find("Card") then
+        if child:IsA("Frame") and (child.Name:find("Card") or child.Name == "EmptyState") then
             child:Destroy()
         end
     end
     
-    -- Add command cards
-    for commandName, command in pairs(Commands) do
-        self:CreateCommandCard(commandName, command)
+    -- Check if we have commands
+    local commandCount = self:GetCommandCount()
+    
+    if commandCount == 0 then
+        -- Show empty state
+        local EmptyState = Instance.new("Frame")
+        EmptyState.Name = "EmptyState"
+        EmptyState.Parent = GUI.CommandsList
+        EmptyState.BackgroundTransparency = 1
+        EmptyState.Size = UDim2.new(1, 0, 0, 200)
+        
+        local EmptyIcon = Instance.new("TextLabel")
+        EmptyIcon.Name = "EmptyIcon"
+        EmptyIcon.Parent = EmptyState
+        EmptyIcon.BackgroundTransparency = 1
+        EmptyIcon.Position = UDim2.new(0.5, -30, 0, 20)
+        EmptyIcon.Size = UDim2.new(0, 60, 0, 60)
+        EmptyIcon.Font = Enum.Font.GothamBold
+        EmptyIcon.Text = "📋"
+        EmptyIcon.TextColor3 = Color3.fromRGB(100, 100, 120)
+        EmptyIcon.TextScaled = true
+        
+        local EmptyTitle = Instance.new("TextLabel")
+        EmptyTitle.Name = "EmptyTitle"
+        EmptyTitle.Parent = EmptyState
+        EmptyTitle.BackgroundTransparency = 1
+        EmptyTitle.Position = UDim2.new(0, 0, 0, 90)
+        EmptyTitle.Size = UDim2.new(1, 0, 0, 30)
+        EmptyTitle.Font = Enum.Font.GothamBold
+        EmptyTitle.Text = "No Commands Loaded"
+        EmptyTitle.TextColor3 = Color3.fromRGB(150, 150, 170)
+        EmptyTitle.TextSize = 18
+        
+        local EmptyDesc = Instance.new("TextLabel")
+        EmptyDesc.Name = "EmptyDesc"
+        EmptyDesc.Parent = EmptyState
+        EmptyDesc.BackgroundTransparency = 1
+        EmptyDesc.Position = UDim2.new(0, 0, 0, 125)
+        EmptyDesc.Size = UDim2.new(1, 0, 0, 40)
+        EmptyDesc.Font = Enum.Font.Gotham
+        EmptyDesc.Text = "Use lib:AddCommand() to add your own commands\nType 'help' for usage information"
+        EmptyDesc.TextColor3 = Color3.fromRGB(120, 120, 140)
+        EmptyDesc.TextSize = 12
+        EmptyDesc.TextWrapped = true
+    else
+        -- Add command cards
+        for commandName, command in pairs(Commands) do
+            self:CreateCommandCard(commandName, command)
+        end
     end
     
     -- Update canvas size
@@ -1729,8 +1785,11 @@ function CommandLibrary:Initialize()
     -- Create main UI
     createMainUI()
     
-    -- Register default commands
-    self:RegisterDefaultCommands()
+    -- Store original transparencies for fade functionality
+    self:StoreOriginalTransparencies()
+    
+    -- Register only system commands
+    self:RegisterSystemCommands()
     
     -- Populate UI
     self:PopulateCategories()
@@ -1743,18 +1802,43 @@ function CommandLibrary:Initialize()
     self:CreateIntroAnimation()
     
     -- Initial messages
-    self:AddOutput("Command Library v2.0 loaded successfully!", Color3.fromRGB(100, 255, 100))
-    self:AddOutput("Welcome to the advanced command system!", Color3.fromRGB(100, 255, 255))
-    self:AddOutput("Browse commands by category or use the search box", Color3.fromRGB(255, 255, 100))
+    self:AddOutput("Command Library v2.0 - Pure Library loaded!", Color3.fromRGB(100, 255, 100))
+    self:AddOutput("This is a pure command library - no commands pre-loaded", Color3.fromRGB(100, 255, 255))
+    self:AddOutput("Use lib:AddCommand() to add your own commands", Color3.fromRGB(255, 255, 100))
+    self:AddOutput("Type 'help' for system commands and usage info", Color3.fromRGB(200, 200, 255))
     
     -- Play success sound
     createSound(131961136, 0.3, 1.2)
     
     -- Show notification
-    createNotification("Command Library", "Successfully loaded with " .. self:GetCommandCount() .. " commands!", 5)
+    createNotification("Command Library", "Pure library loaded! Ready for commands.", 5)
     
-    self:UpdateStatus("Ready", Color3.fromRGB(100, 255, 100))
+    self:UpdateStatus("Ready - No commands loaded", Color3.fromRGB(255, 255, 100))
     self:UpdateCommandCount()
+    
+    -- Set global persistence flag
+    _G.CommandLibraryLoaded = true
+    _G.CommandLibraryInstance = self
+end
+
+function CommandLibrary:StoreOriginalTransparencies()
+    local function storeTransparencies(element)
+        if element:IsA("GuiObject") then
+            element:SetAttribute("OriginalBGTransparency", element.BackgroundTransparency)
+            
+            if element:IsA("TextLabel") or element:IsA("TextButton") or element:IsA("TextBox") then
+                element:SetAttribute("OriginalTextTransparency", element.TextTransparency)
+            end
+            
+            for _, child in pairs(element:GetChildren()) do
+                storeTransparencies(child)
+            end
+        end
+    end
+    
+    if GUI.MainFrame then
+        storeTransparencies(GUI.MainFrame)
+    end
 end
 
 function CommandLibrary:GetCommandCount()
@@ -1821,12 +1905,14 @@ function CommandLibrary:SetupEvents()
     addHoverEffect(GUI.CloseButton, Color3.fromRGB(255, 100, 100), Color3.fromRGB(255, 120, 120))
     addHoverEffect(GUI.MinimizeButton, Color3.fromRGB(255, 200, 100), Color3.fromRGB(255, 220, 120))
     
-    -- Keybind toggle
+    -- Keybind toggles
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
         
         if input.KeyCode == Settings.Keybind then
             self:ToggleGUI()
+        elseif input.KeyCode == Settings.FadeKeybind then
+            self:FadeGUI()
         end
     end)
     
@@ -1860,9 +1946,14 @@ end
 -- Create and return library instance
 local Library = setmetatable({}, CommandLibrary)
 
--- Auto-initialize
-spawn(function()
-    Library:Initialize()
-end)
+-- Auto-initialize only if not already loaded
+if not _G.CommandLibraryLoaded then
+    spawn(function()
+        Library:Initialize()
+    end)
+else
+    -- Return existing instance if already loaded
+    return _G.CommandLibraryInstance
+end
 
 return Library
