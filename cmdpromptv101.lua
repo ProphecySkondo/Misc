@@ -4,6 +4,7 @@
     site xeonhub.netlify.app
 ]]--
 
+local watermark = loadstring(game:HttpGet("https://raw.githubusercontent.com/ProphecySkondo/Misc/refs/heads/main/watermark.lua"))()
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
