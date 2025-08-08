@@ -1,14 +1,3 @@
-config = {
-    Radius = 80;
-    AimPart = "Head";
-    Smoothness = 0.2;
-    ActivationKey = "MouseButton2";
-    ["assets"] = {
-        ["Starting"] = "rbxassetid://";
-        ["Mouse"] = "68308749";
-    };
-}
-
 -- // services
 
 local players = game:GetService("Players")
