@@ -18,11 +18,23 @@ local function rawport(...)
 	return loadstring(game:HttpGetAsync(...))()
 end
 
+local function information(...)
+	return { ... }
+end
+
 local cloneref = missing("function", cloneref, function(...) return ... end)
 local httprequest =  missing("function", request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request))
 local everyClipboard = missing("function", setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set))
 local queueteleport =  missing("function", queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport))
 local hui = missing("function", gethui or get_hidden_gui or (syn and syn.protect_gui))
+local setthreadidentity = missing("function", setthreadidentity or (syn and syn.set_thread_identity) or syn_context_set or setthreadcontext)
+local real_secure_call =
+    		secure_call
+  		or rsecure_call
+  		or protect_call
+  		or (syn and syn.secure_call)
+  		or (getgenv and getgenv().syn and getgenv().syn.secure_call)
+local loader = loadstring or load
 
 services = setmetatable({}, {
 	__index = function(_, name)
@@ -37,7 +49,7 @@ services = setmetatable({}, {
 
 local function base64encode(data)
   local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-  return ((data:gsub('.', function(x) 
+  return ((data:gsub('.', function(x)
     local r,b='',x:byte()
     for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0') end
     return r;
@@ -182,35 +194,296 @@ local function sha256 (msg)
   return str2hexa(num2s(H[1], 4) .. num2s(H[2], 4) .. num2s(H[3], 4) .. num2s(H[4], 4) .. num2s(H[5], 4) .. num2s(H[6], 4) .. num2s(H[7], 4) .. num2s(H[8], 4))
 end
 
---// bag work
+--// ~ by konstant
+
+do
+	assert(getscriptbytecode, "Exploit not supported.")
+	assert(type(httprequest) == "function", "No http request function available.")
+
+	local API: string = "http://api.plusgiant5.com"
+
+	local last_call = 0
+	local function call(konstantType: string, scriptPath: Script | ModuleScript | LocalScript): string
+    	local success: boolean, bytecode: string = pcall(getscriptbytecode, scriptPath)
+
+    	if (not success) then
+    	    return `-- Failed to get script bytecode, error:\n\n--[[\n{bytecode}\n--]]`
+    	end
+
+    	local time_elapsed = os.clock() - last_call
+    	if time_elapsed <= .5 then
+    	    task.wait(.5 - time_elapsed)
+    	end
+    	local httpResult = httprequest({
+    	    Url = API .. konstantType,
+    	    Body = bytecode,
+    	    Method = "POST",
+    	    Headers = {
+    	        ["Content-Type"] = "text/plain"
+    	    },
+    	})
+    	last_call = os.clock()
+
+    	if (httpResult.StatusCode ~= 200) then
+    	    return
+    	else
+    	    return httpResult.Body
+    	end
+	end
+
+	local function newdecompile(scriptPath: Script | ModuleScript | LocalScript): string
+	    return call("/konstant/decompile", scriptPath)
+	end
+
+	local function newdisassemble(scriptPath: Script | ModuleScript | LocalScript): string
+	    return call("/konstant/disassemble", scriptPath)
+	end
+
+	getgenv().newdecompile = newdecompile
+	getgenv().newdisassemble = newdisassemble
+end
+
+--// ~ synapse x
+
+local function getsynasset(assetid: number)
+	information([[
+		this is just quite self explainatory
+	]])
+
+	return "rbxassetid://" .. assetid
+end
 
 syn = {
-	--// new synapse functions ðŸ˜­
-	
-	grab_service = function(serviceName)
+	--// ~ new synapse functions
+
+	credits = function()
+		syn.notify("Api By Xeon", "Discord Server Is https://discord.gg/DNbfshRhgq", 30, getsynasset(135561165984389))
+	end,
+
+	service = function(serviceName)
 		return services(serviceName)
 	end,
 
 	notify = function(title, message, duration, asset)
-		syn.grab_service("StarterGui"):SetCore("SendNotification", {
+		syn.safe_get_service("StarterGui"):SetCore("SendNotification", {
 			Title = title or "https://discord.gg/DNbfshRhgq",
 			Text = tostring(message) or "",
 			Duration = duration or 10,
-			Icon = asset or ""
+			Icon = asset or getsynasset(135561165984389)
 		})
 	end,
 
-	webImport = function(rawURL)
-		rawport(rawURL)
+	DEX = function()
+		syn.web.Import("https://raw.githubusercontent.com/peyton2465/Dex/master/out.lua")
 	end,
 
-	--// syn functions
+	IY = function()
+		syn.web.Import("https://raw.githubusercontent.com/edgeiy/infiniteyield/master/source")
+	end,
+
+	helpers = {
+		get_remotes = function(service)
+			local remotes = {}
+
+			for i, v in ipairs(safe_get_service(service):GetDescendants()) do
+				if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+					table.insert(remotes, v)
+				end
+			end
+			return remotes
+		end,
+	},
+
+	web = {
+		Import = function(rawURL)
+			rawport(rawURL)
+		end,
+		Post = function(url, payload)
+			local HttpService = syn.safe_get_service("HttpService")
+			assert(type(url) == "string", "url must be a string")
+
+			local encodedPayload = HttpService:JSONEncode(payload)
+
+			httprequest({
+				Url = url,
+				Method = "POST",
+				Headers = { ["Content-Type"] = "application/json" },
+				Body = encodedPayload
+			})
+		end,
+	},
+
+	discord = {
+		create_embed = function(content, embedTitle, embedDescription, embedColor, thumbnailUrl, imageUrl, ...)
+    		return {
+    		    content = content,
+    		    embeds = {{
+    		        title = embedTitle,
+    		        description = embedDescription,
+    		        color = embedColor,
+    		        thumbnail = thumbnailUrl and { url = thumbnailUrl } or nil,
+    		        image = imageUrl and { url = imageUrl } or nil,
+    		        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+    		        fields = { ... }
+    		    }}
+    		}
+		end,
+
+		post_to_webhook = function(webhook, payload)
+			return syn.web.Post(
+				webhook,
+				payload
+			)
+		end,
+
+		prompt_to_join_server = function(invitelink)
+			print("beta, not finished yet and probably wont until i make my own executer")
+			return invitelink
+		end,
+	},
+
+	scripts = {
+		decompile_local_script = function(obj)
+			assert(obj:IsA("LocalScript"), "Has to be local script")
+			return newdecompile(obj)
+		end,
+		decompile_module_script = function(obj)
+			assert(obj:IsA("ModuleScript"), "Has to be a module script")
+			return newdecompile(obj)
+		end,
+		disassemble_local_script = function(obj)
+			assert(obj:IsA("LocalScript"), "Has to be local script")
+			return newdisassemble(obj)
+		end,
+		disassemble_module_script = function(obj)
+			assert(obj:IsA("ModuleScript"), "Has to be module script")
+			return newdisassemble(obj)
+		end,
+	},
+
+	manipulation = {
+		replace_class = function(obj, replacer)
+				information([[
+					this to put it simply just deletes a instance and replaces it with another instance thats just like it. if they match whats in the tables
+				]])
+			assert(typeof(obj) == "Instance", "~ has to be a Instance")
+			assert(type(replacer) == "string", "~ replacer must be a string")
+			local matches = {
+				MeshPart = { "Part" },
+				Part = { "MeshPart", "WedgePart", "CornerWedgePart", "Seat", "VehicleSeat", "SpawnLocation" },
+				WedgePart = { "Part" },
+				CornerWedgePart = { "Part" },
+				UnionOperation = { "Part" },
+				Seat = { "Part", "VehicleSeat" },
+				VehicleSeat = { "Seat", "Part" },
+				Model = { "Folder" },
+				Folder = { "Model" },
+				ScreenGui = { "BillboardGui", "SurfaceGui" },
+				BillboardGui = { "ScreenGui", "SurfaceGui" },
+				SurfaceGui = { "ScreenGui", "BillboardGui" },
+				TextLabel = { "TextButton", "ImageLabel", "ImageButton" },
+				TextButton = { "TextLabel", "ImageButton", "ImageLabel" },
+				ImageLabel = { "ImageButton", "TextLabel" },
+				ImageButton = { "ImageLabel", "TextButton" },
+				Decal = { "Texture" },
+				Texture = { "Decal" },
+				Tool = { "HopperBin" },
+				HopperBin = { "Tool" },
+				BodyPosition = { "VectorForce" },
+				VectorForce = { "BodyPosition" },
+				Sound = { "Sound" },
+				ParticleEmitter = { "ParticleEmitter" },
+				Mesh = { "SpecialMesh" },
+				SpecialMesh = { "Mesh" },
+			}
+			local src = obj.ClassName
+			local allowed = matches[src]
+			if not allowed then return error("[replacer]: no replacement rules for "..tostring(src), 2) end
+			local ok = false
+			for _,v in ipairs(allowed) do if v == replacer then ok = true break end end
+			if not ok then return error("[replacer]: cannot replace "..tostring(src).." with "..tostring(replacer), 2) end
+			local function copy_props(s,d,props)
+				for _,p in ipairs(props) do
+					local ok1, val = pcall(function() return s[p] end)
+					if ok1 then
+						pcall(function() d[p] = val end)
+					end
+				end
+			end
+			local common = {
+				"Name","Archivable","Parent","Transparency","Anchored","CanCollide","CanTouch","CanQuery","CanCollideWith",
+				"Size","CFrame","Position","Orientation","Rotation","Velocity","Massless","Material","BrickColor","Color",
+				"Reflectance","CastShadow","TopSurface","BottomSurface","Shape","ZIndex","Visible","Enabled","Image","ImageColor3",
+				"ImageTransparency","BackgroundColor3","BackgroundTransparency","BorderColor3","BorderSizePixel","Text","Font",
+				"TextSize","TextColor3","TextWrapped","TextXAlignment","TextYAlignment","AutomaticSize","LayoutOrder","Active"
+			}
+			local new = Instance.new(replacer)
+			copy_props(obj,new,common)
+			new.Name = obj.Name
+			local attrs = {}
+			pcall(function() attrs = obj:GetAttributes() end)
+			for k,v in pairs(attrs) do
+				pcall(function() new:SetAttribute(k, v) end)
+			end
+			local CollectionService = game:GetService("CollectionService")
+			pcall(function()
+				local tags = CollectionService:GetTags(obj)
+				for _,t in ipairs(tags) do CollectionService:AddTag(new, t) end
+			end)
+			if obj:IsA("MeshPart") and replacer == "Part" then
+				local meshId, texId, mt, sScale = nil, nil, nil, nil
+				pcall(function() meshId = obj.MeshId end)
+				pcall(function() texId = obj.TextureID end)
+				pcall(function() mt = obj.MeshType end)
+				pcall(function() sScale = obj.Size end)
+				local sm = Instance.new("SpecialMesh")
+				if meshId and meshId ~= "" then pcall(function() sm.MeshId = meshId end) end
+				if texId and texId ~= "" then pcall(function() sm.TextureId = texId end) end
+				pcall(function() sm.MeshType = mt end)
+			pcall(function() sm.Scale = Vector3.new(1,1,1) end)
+				sm.Parent = new
+			elseif obj:IsA("Part") and replacer == "MeshPart" then
+				local special = obj:FindFirstChildOfClass("SpecialMesh")
+				if special then
+					pcall(function() new.MeshId = special.MeshId end)
+					pcall(function() new.TextureID = special.TextureId end)
+				end
+				pcall(function() new.CustomPhysicalProperties = obj.CustomPhysicalProperties end)
+			end
+			if (obj:IsA("Model") and new:IsA("Folder")) or (obj:IsA("Folder") and new:IsA("Model")) then
+			for _,child in ipairs(obj:GetChildren()) do
+					local c = child:Clone()
+					c.Parent = new
+				end
+			else
+				for _,child in ipairs(obj:GetChildren()) do
+					local c = child:Clone()
+					c.Parent = new
+				end
+			end
+			new.Parent = obj.Parent
+			obj:Destroy()
+			return new
+		end,
+		fake_collision = function(point, ...)
+			information([[
+				for hitbox things, i'll prolly do this once i get a better executer and read more about enviornments nd shi
+			]])
+			return nil
+		end,
+	},
+
+	--(don't complain that these functions aren't written fully from nothing, i don't have access to change the backend of executers)
 
 	is_beta = function()
 		return true
 	end,
 
 	request = function(options)
+		if not httprequest then
+			warn("request not supported")
+			return { Success = false, StatusCode = 0, Body = "", Headers = {} }
+		end
 		local response = httprequest(options)
 		return {
 			StatusCode = response.StatusCode or response.Status,
@@ -221,41 +494,57 @@ syn = {
 	end,
 
 	write_clipboard = function(content)
-		everyClipboard(content)
+		if everyClipboard then
+			everyClipboard(content)
+		else
+			warn("write_clipboard not supported")
+		end
 	end,
-	
+
 	queue_on_teleport = function(code)
-		return queueteleport(code)
+		if queueteleport then
+			return queueteleport(code)
+		else
+			warn("queue_on_teleport not supported")
+		end
 	end,
 
 	protect_gui = function(gui)
-		gui.Parent = hui()
+		if hui then
+			gui.Parent = hui()
+		else
+			gui.Parent = game:GetService("CoreGui")
+		end
 		return gui
 	end,
 
 	unprotect_gui = function(gui)
-		local players = syn.grab_service("Players")
+		local players = syn.safe_get_service("Players")
 		local plr = players.LocalPlayer
 
 		if plr and plr:FindFirstChildWhichIsA("PlayerGui") then
 			gui.Parent = plr:FindFirstChildWhichIsA("PlayerGui")
 		else
-			gui.Parent = syn.grab_service("CoreGui")
+			gui.Parent = syn.safe_get_service("CoreGui")
 		end
 		return gui
 	end,
-	
+
 	synsaveinstance = function(options)
 		local protocol = loadstring(game:HttpGet(params.RepoURL .. params.SSI .. ".luau", true), params.SSI)()
 		protocol(options)
 	end,
 
-	secure_call = function(...)
-		return ... -- im not goated enough
+	set_thread_identity = function(id)
+		if setthreadidentity then
+			return setthreadidentity(id)
+		else
+			warn("set_thread_identity not supported")
+		end
 	end,
 
-	--// crypt functions
-	
+	-- crypt functions
+
 	crypt = {
 		encrypt = function(data, key)
 			local byte = string.byte
@@ -274,10 +563,8 @@ syn = {
 		decrypt = function(data, key)
 			return syn.crypt.encrypt(data, key)
 		end,
-		base64 = {
-			encode = base64encode,
-			decode = base64decode,
-		},
+		base64encode = base64encode,
+		base64decode = base64decode,
 		hash = sha256,
 		derive = function(value, len)
 			local h = sha256(value)
@@ -296,29 +583,63 @@ syn = {
 			end
 			return result
 		end,
-		custom = {
-			encrypt = function(cipher, data, key, iv)
-				return syn.crypt.encrypt(data, key)
-			end,
-			decrypt = function(cipher, data, key, iv)
-				return syn.crypt.decrypt(data, key)
-			end,
-			hash = function(algorithm, data)
-				return sha256(data)
-			end,
-		},
+		custom_encrypt = function(cipher, data, key, iv)
+			return syn.crypt.encrypt(data, key)
+		end,
+		custom_decrypt = function(cipher, data, key, iv)
+			return syn.crypt.decrypt(data, key)
+		end,
+		custom_hash = function(algorithm, data)
+			return sha256(data)
+		end,
 	}
 }
 
--- script by marty, discord server is https://discord.gg/DNbfshRhgq join xeon
--- getgenv().syn = syn
+syn._context = syn._context or {}
+
+-- other functions
+
+syn.secure_call = function(fn_or_code, ...)
+    local args = { ... }
+    local callable
+
+    if type(fn_or_code) == "string" then
+        local f, err = loader(fn_or_code)
+        if not f then error(err, 2) end
+        callable = f
+    elseif type(fn_or_code) == "function" then
+        callable = fn_or_code
+    else
+        error("secure_call expects a function or string", 2)
+    end
+
+    if real_secure_call then
+        return real_secure_call(callable, unpack(args))
+    else
+        return callable(unpack(args))
+    end
+end
+
+syn._context_set = function(key, value)
+	assert(type(key) == "string", "dumbahh")
+	syn._context[key] = value
+end
+
+syn._context_get = function(key)
+	assert(type(key) == "string", "dumbahh")
+	return syn._context[key]
+end
+
+--// ~ script by marty, discord server is https://discord.gg/DNbfshRhgq join xeon
+--// ~ getgenv().syn = syn
 
 do
-	print("discord server is https://discord.gg/DNbfshRhgq")
-	print("youtube is https://www.youtube.com/@its-skondo")
-	print("credit skondo and marty for making this")
+	print("~ discord server is https://discord.gg/DNbfshRhgq")
+	print("~ youtube is https://www.youtube.com/@its-skondo")
+	print("~ credit skondo and marty for making this")
 end
 
 getgenv().syn = syn
+getgenv().getsynasset = getsynasset
 
 return syn
