@@ -292,6 +292,16 @@ syn = {
 	},
 
 	web = {
+		GetRawChildren = function(assetid, parent)
+			local objects = game:GetObjects(assetid)
+			if #objects > 0 then
+				for _, inst in ipairs(objects) do
+					for _, child in ipairs(inst:GetChildren()) do
+						child.Parent = parent or workspace
+					end
+				end
+			end
+		end,
 		GetModel = function(assetid, path, parent)
     		local objects = game:GetObjects(assetid)
     		if #objects > 0 then
