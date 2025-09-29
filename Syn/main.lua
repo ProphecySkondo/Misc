@@ -292,6 +292,22 @@ syn = {
 	},
 
 	web = {
+		GetModel = function(assetid, path, parent)
+    		local objects = game:GetObjects(assetid)
+    		if #objects > 0 then
+    		    local model = objects[1]
+
+    		    if path then
+    		        local found = model:FindFirstChild(path, true)
+    		        if found then
+    		            model = found
+   		        	end
+   		     	end
+
+    		    model.Parent = parent or workspace
+        		return model
+    		end
+		end,
 		Import = function(rawURL)
 			rawport(rawURL)
 		end,
