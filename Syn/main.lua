@@ -1,7 +1,3 @@
---([[This Script Was Made By https://discord.gg/DNbfshRhgq]]):gsub(".+", function(a)
---	print(a)
---end)
-
 local syn
 local services
 local params = {
@@ -250,6 +246,7 @@ local function getsynasset(assetid: number)
 		this is just quite self explainatory
 	]])
 
+	assert(typeof(assetid) ~= number, "make sure its a number goofy")
 	return "rbxassetid://" .. assetid
 end
 
@@ -265,7 +262,7 @@ syn = {
 	end,
 
 	notify = function(title, message, duration, asset)
-		syn.safe_get_service("StarterGui"):SetCore("SendNotification", {
+		syn.service("StarterGui"):SetCore("SendNotification", {
 			Title = title or "https://discord.gg/DNbfshRhgq",
 			Text = tostring(message) or "",
 			Duration = duration or 10,
@@ -285,7 +282,7 @@ syn = {
 		get_remotes = function(service)
 			local remotes = {}
 
-			for i, v in ipairs(safe_get_service(service):GetDescendants()) do
+			for i, v in ipairs(syn.service(service):GetDescendants()) do
 				if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
 					table.insert(remotes, v)
 				end
@@ -299,7 +296,7 @@ syn = {
 			rawport(rawURL)
 		end,
 		Post = function(url, payload)
-			local HttpService = syn.safe_get_service("HttpService")
+			local HttpService = syn.service("HttpService")
 			assert(type(url) == "string", "url must be a string")
 
 			local encodedPayload = HttpService:JSONEncode(payload)
@@ -471,6 +468,26 @@ syn = {
 			]])
 			return nil
 		end,
+
+		break_console = function()
+			syn.notify("BETA", "Your using a very beta function right now, it might fuck up the console")
+			
+			local coreGui = syn.service("CoreGui")
+			local devconsoleMaster = coreGui:FindFirstAncestor("DevConsoleMaster") or coreGui:FindFirstChild("DevConsoleMaster")
+			local ConsoleWindow = devconsoleMaster:FindFirstChild("DevConsoleWindow")
+			local ConsoleUi = ConsoleWindow:FindFirstChild("DevConsoleUI")
+			local MainView = function()
+				repeat
+					task.wait();
+				until ConsoleUi:FindFirstChild("MainView")
+				return ConsoleUi:FindFirstChild("MainView")
+			end
+			local ClientLog = MainView():FindFirstChild("ClientLog")
+
+			for i, v in ipairs(ClientLog:GetChildren()) do
+				v:ClearAllChildren()
+			end
+		end,
 	},
 
 	--(don't complain that these functions aren't written fully from nothing, i don't have access to change the backend of executers)
@@ -519,13 +536,13 @@ syn = {
 	end,
 
 	unprotect_gui = function(gui)
-		local players = syn.safe_get_service("Players")
+		local players = syn.service("Players")
 		local plr = players.LocalPlayer
 
 		if plr and plr:FindFirstChildWhichIsA("PlayerGui") then
 			gui.Parent = plr:FindFirstChildWhichIsA("PlayerGui")
 		else
-			gui.Parent = syn.safe_get_service("CoreGui")
+			gui.Parent = syn.service("CoreGui")
 		end
 		return gui
 	end,
