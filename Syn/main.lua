@@ -526,6 +526,14 @@ syn = {
 		end
 	end,
 
+	sticky_code = function(code)
+		if queueteleport then
+			return queueteleport(code)
+		else
+			warn("queue_on_teleport not supported")
+		end
+	end,
+
 	protect_gui = function(gui)
 		if hui then
 			gui.Parent = hui()
