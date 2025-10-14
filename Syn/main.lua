@@ -544,6 +544,14 @@ syn = {
 		end
 	end,
 
+    write_file = function(filePath, content)
+        if writefile then
+            return writefile(filePath, content)
+        else
+            return nil
+        end
+    end,
+
 	queue_on_teleport = function(code)
 		if queueteleport then
 			return queueteleport(code)
