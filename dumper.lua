@@ -7,19 +7,7 @@ local BATCH_SIZE=300;
 local PAUSE_TIME=0.05;
 local SAVE_INSTANCE=false
 
-mark = [[
-
-
-
-
-                         _  _   /   ___   \ / _     _  _    __ 
- _| o  _  _  _  __ _|   (_|(_| / |_| | |_| Y (_| __|_)/ \ _|__)
-(_| | _> (_ (_) | (_| o __|__|/    | | | | | __| | | \\_X(_|__)
-
-
-
-
-]]
+mark = "https://saiscripts.vercel.app/"
 
 local function safeDescendants(root)
     local ok, children = pcall(function() return root:GetDescendants() end)
